@@ -1,7 +1,7 @@
 
-## ESParaSite temperature logger (ESP Chip-based Parameter loggger with integrated website)
+# ESParaSite temperature logger (ESP Chip-based Parameter loggger with integrated website)
 
-# Please note, ESParaSite has reached the limit of what is possible with the ESP8266 chips and all future development will be on the ESP32 Platform.
+### Please note, ESParaSite has reached the limit of what is possible with the ESP8266 chips and all future development will be on the ESP32 Platform.
 
 ESP based temperature, LED power and power time logger for LCD/DLP/SLA Resin machines
 

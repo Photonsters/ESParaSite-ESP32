@@ -1,0 +1,275 @@
+// ESParasite VERSION HISTORY
+
+/* ESParasite Data Logger
+	Authors: Andy  (SolidSt8Dad)Eakin
+	
+	Please see /ATTRIB for full credits and OSS License Info
+  	Please see /LIBRARIES for necessary libraries
+  	Please see /VERSION for History
+	
+	All Derived Content is subject to the most restrictive license of it's 
+	source.
+	
+	All Original content is free and unencumbered software released into the 
+	public domain.
+	
+	The Author(s) are extremely grateful for the amazing open source 
+	communities that work to support all of the sensors, microcontrollers, 
+	web standards, etc.
+	
+*/
+
+/*
+v 1.1
+	- Fixed BugIssue #39 api feeds for fileList and readHistory now send 2kB
+		chunks of data across multiple HTTP chunks.
+	- Changed digest of data to add hourly digests for 12 hours.  We now 
+		provide 40 datapoints - live data every 5 seconds for 30 seconds, 
+		30 second data averages for 5 minutes, 5 minute data average for 
+		1 hour and 1 hour averages for 12 hours.
+	- Renamed RtcEepromCore.h and .cpp to EepromCore.h and .cpp.
+	- Numerous changes to header and source file naming and src folder layout
+		- This should make the code groupings a bit simpler for humans to 
+			follow and keep the root sprawl to a minimum 
+	- Renamed getGuiData to handleApiRequest
+	- Moved set_rtc_clock, reset_fep, reset_led and reset_screen into 
+		handleApiRequest
+	- Renamed URL /guiFeed to /api 
+	- Renamed Many variables for better consistency
+	- Changed int variables to int8_t
+	- Removed a few unneeded constants
+	- GUI - added regex parsing prior to parsing json data from fileList and 
+		readHistory api calls to deal with extraneous characters created by 
+		chunking responses
+	- GUI - changed URL pointers from /guifeed to /api
+
+v1.0 - Kala-azar
+	- Moved GUI data feeds to be a single URL with query strings
+	- Moved all HTTP_GET handlers that return JSON to their own cpp file
+	- Moved all HTTP Handlers for the web GUI to their own file.
+	- Moved all HTTP files under a unified header
+	- Moved all HTTP handlers for resetting counters to their own file.
+	- Added a GUI data feed for status page
+	- Moved all JSON handling functions to the DataToJson Namespaces
+		- Moved HistorytoJson to its own file for sake of code length.
+	- Moved all feeds to /guiFeed and renamed all to be consistent.
+	- Changed Flash Layout on ESP12F to have a 3MB filesystem and 512K for 
+		OTA updates This update will format your flash and force you to 
+
+		reconfigure wifi.
+	- Removed ESP32-Targz in favor of a python GUI uploader.
+	- Renamed HTTPFile.cpp to HTTPHandleFile.cpp
+		from a http://esparasite.local (Needs CORS Plugin) or a local json/ 
+		subdirectory with debug=1 or debug=2 enabled.
+	- Split SensorsCore.cpp into multiple files for easier maintenance and 
+		future growth for alternate sensors.
+	- Renamed ESParaSite_ files to remove prefix.
+	- Added routine to allow remotely setting of the Real Time Clock to UTC
+		currently performed alongside GUI upload.
+
+	- UPLOADER - esps-uploader.py Created to load/update GUI onto ESParaSite
+	- UPLOADER - added time setting function that sets the RTC to UTC
+	- UPLOADER - made uploader a bit more verbose.
+	
+	- GUI - A kind gentleman, Peter Csaki has contributed some of his time 
+		to build the core of the GUI for us
+	- GUI - Added Status Page to GUI showing the most critical information
+	 	on one page.
+	- GUI - Added Diagnostics Page to the GUI which shows all information 
+		we know about the printer.
+	- GUI - will now be uploaded/installed/updated via an external Python 
+		script.
+	- GUI - Added File listing and FS Info to Diagnostics page.
+	- GUI - Added debug options to GUI .js pages.  Pages can either pull 
+	- GUI - Removed code in home.js that converted time to UTC.
+	- GUI - Renamed logo file to logo.png
+	- GUI - added function to trim floats down to 2 decimal places
+	- GUI - removed WiFi navigation link
+	- GUI - removed Individual JSON feed navigation links
+	- GUI - swapped Chamber Humidity with Screen Temperature in Chart
+
+v0.9 - Iodamoeba buetschlii - 2020-05-24
+	- Implemented locally served chart.js and jquery.js in order to start 
+		creating a better web GUI
+	- DARK MODE Web GUI Phase 1
+		- GUI displays chart of 4 common values and table of 7 important 
+			values
+		- GUI has links to all major JSON feeds
+		- GUI has link to upload page.
+		- GUI home page graph and table leverage reduced data and on refresh 
+			show current and historical state
+		* GUI must be currently uploaded file by file.
+		* Warning: Currently for development we use some hardcoded URLs in 
+		  index.html, home.html and home.js. If you rename your esparasite
+		  this will cause issues.
+	- Continued renaming variables and functions from_my_convention to 
+		moreCommonConventions
+	- Implemented data parsing and reduction feature.
+		- We now hold 6 ticks of 5 seconds, 10 ticks of 20 seconds and 12 
+			ticks of 5 minutes
+
+
+v0.8 - Heterophyiasis - 2020-05-15
+	- Separated HTTP routines into Core and Handler files. This will make 
+		code easier to scale.
+	- Implemented ESP32-Targz as a hardcoded library.
+		- This will eventually allow us to upload and unarchive gz, tar.gz 
+			and tar files
+		- gunzip is extremely memory intensive and may not be supportable 
+		- the main point of adding this is to be able to upload a website
+			"package" so the web GUI can be uploaded and upgraded 
+			separately from the core code.
+	- Implemented HTTP Uploads to SPIFFS
+	- Implemented HTTP POST methods to allow reset of lifetime counters for 
+		LCD Screen, LED Array and Vat FEP 
+	- Started to rename variables and functions from_my_convention to 
+		moreCommonConventions
+
+
+v0.7 - Seventh Release - Giardiasis 2020-05-13
+	- Implemented LittleFS for /config.json to replace deprecated SPIFFS. 
+		This will require a new config file to be written. Thus a new run 
+			of the Config Portal.
+		- This is destructive to any existing SPIFFS data, but since we 
+			only use it for the config.json currently, it will simply force 
+		  	you back into the Config Portal
+	- Cleaned up some code in ESParaSite_Sensors.cpp
+		- reduced serial verbosity, we no longer constantly dump sensor 
+		  	data to serial, except when in DEBUG_L2. We normally only do a 
+		  	sensor dump upon EEPROM Write.
+		- Cleaned up and moved some RTC tasks to other functions to limit 
+		  	redundant code.  
+		- Continued moving serial.print() to serial.print(F()) to save on 
+			RAM. 
+
+v0.6 - Sixth Release - Fascioliasis 2020-05-11
+	- Fixed a bug in ESParaSite_Eeprom.cpp where we issued a return prior 
+		to setting a variable in 2 places.
+	- Added for() loop to scan all 8 I2C addresses of an AT24Cx EEPROM
+	- Added Magic number warning comments in ESParaSite_Eeprom.cpp for the 
+		functions that assume an eeprom layout (we will go back and fix 
+		that IF a different chip becomes common)
+	- cppcheck/cpplint work to clean up code
+		- 120 char max lines (I had 80 columns in 1982, lets move on, 
+			folks /me ducks) (Deprecated)
+		- replaced less secure string (strcat, sprintf, etc) functions 
+			with 'snprintf' (Security/Modern Semantics)
+		- reduced scope of a number of variables.
+		- removed a couple of extraneous variables
+		- changed to modern c++ variable casting (const_cast, static_cast)
+		- added newline to end of several files
+		- Changed header guard syntax to "INCLUDE_ESPARASITE_FILENAME_H_"
+		- ****REMOVED**** Improved web services to allow service of files 
+			and gzipped files.
+	- Removed all blocking delay() calls from main loop in favor of 
+		millis() based isosynchronous triggers
+	- Changed Config Portal button handling to be interrupt driven.
+	- Substantial and continuing code work to properly lay scalable 
+		foundation
+		- 80 char max lines (I fought the tools and the tools won)
+		- Rename and standardize content across *.cpp files
+		- Implement Namespaces
+		- Continued code formatting and linting
+		- Use most efficient data type for each variable
+		- Standardize variable and function names 
+		- Optimized Text strings to move them out of the DATA RAM 
+	- Major stability improvements to WiFi setup portal
+		- Implemented core branch of WiFi Manager replacing previously 
+			used branch (less pretty but more stable)
+		- Stop existing web services prior to launching config portal
+		- re-direct all fatal setup() errors to config portal
+	- Moved much of the verbose logging to Debug code. Only important 
+		boot events and sensor dumps are shown.
+
+v0.5 - Fifth Release - 
+	- Moved WiFi functions to their own file ESParaSite_Wifi.cpp
+		- Moved init_wifi() from ESParaSite_Core.cpp to ESParaSite_Wifi.cpp
+		- Wifi will attempt autoconnect first, then fall back to Config.json 
+			if neither works we will launch the Config Portal.
+	- Added ESParaSite_FileConfig.cpp for config file functions
+		- Implemented SPIFFS for /config.json (Issue #3)
+		- Added loadConfig()
+		- Added saveConfig()
+	- Added initial config via Web Portal (Issue #2)
+		- Added ESParaSite_PortalConfig.cpp for wifiManager/config portal 
+			functions
+		- Implemented Ken Taylor's Branch of wifiManager Library for 
+			initial configuration https://github.com/kentaylor/WiFiManager
+		- Configuration stored in /config.json on SPIFFS.
+	- Added mDNS function
+		- Defaults to http://esparasite.local
+		- Configure name and enable/disable via Initial config portal.
+	- First release to provide .bin images for ESP-01 and NodeMCU boards.
+
+
+v0.4 - Fourth Release - Diphyllobothriasis - 2019-09-05
+	- Added support for DHT12 Sensor and AT24C32 EEPROM.
+	- ESParaSite now records the following values to EEPROM - 
+		firstOnTimestamp (immutable), eeprom_format_version, 
+		lastWriteTimestamp, lcd_screen_life, led_life, fep_life.
+		-These values can be queried http://<ipaddress>/enclosure
+		-(not yet implemented) lcd_screen_life, led_life, fep_life values 
+			will be resettable via the REST interface.
+	- EEPROM error handling and wear levelling.  This will allow us to log 
+		8 separate 32-bit values twice each minute for over 13 years.
+	- Changes to DHT12 Sensor, DS3231 RTC and AT4C32 EEPROM Libraries.  I 
+		am happy with the capabilites and performance of these libraries.
+	- Lots of refactoring to make code more modular. This will make adding 
+		support for other sensors, RTCs and EEPROM chips much easier in the 
+		future.
+	- Refactored initialization routines to standardize call to init 
+		routine for a given sensor and abstract the various routines 
+		created by different libraries and authors.
+	- Added error handling to many sensor routines.
+
+
+v0.3 - Third Release - Crabs - 2019-04-07
+	- Removed DHT12 Support, temporarily, while I find a better library.
+	- Migrated to Platform.IO for substantially better development 
+		experience.
+		- Required refactoring code to make it fully C++ complaint. 
+			(I'm a Real Boy!)
+
+
+v0.2 - Second Release - Bed Bugs - 2019-04-07
+	- Adds support for the BME280 Sensor (For Ambient Temperature, 
+		Temperature, Humidity and Altitude.)
+	- Nearly all code has been refactored! (I just love saying that) Since 
+		we are relying on 3rd party open source libraries, each one is a 
+		bit different in how it behaves. Refactoring has prioritized 
+		standardization across the main functions and attempted to limit 
+		snowflakes to the functions that talk to the various sensor 
+		libraries.
+	- HTTP server re-created as RESTful api with JSON returns. (Currently
+		GET only)
+	- Sensor data has been organized into 4 key groupings or "classes" 
+		- Ambient - The room an environment in which the printer lives 
+			(Temp, Humidity, Barometric Pressure, Altitude)
+		- Chamber - The printing chamber itself. (Temp, Humidity, Dewpoint)
+		- Optics - The LCD Screen and UV LED (UV, Visible light, IR light, 
+			LED Temp and LCD Temp)
+		- Enclosure - The base of the printer that contains the MainBoard 
+			and Optics (Temperature)
+		- All classes have a timestamp as part of the return value.	
+
+
+v0.1 - Initial release! - Amebiasis - 2019-04-03
+	- What it does:
+		- Connects to Wifi
+		- Launches a webserver
+		- opens I2C communication
+		- Talks to the following sensors:
+			- DHT12 (untested)
+			- MLX90614
+			- SI1145
+		- Talks to DS3231
+			- If time not set, sets time to Compile Time
+			- Reads Timestamp
+		- Writes all sensor data to Serial port
+		- DHT12 Temperature and Humidity are available by querying 
+			http://<ipaddress>/chamberTemp and /chamberHumidity
+		- SI1145 UV index is available by querying 
+			http://<ipaddress>/uvledStatus
+	-Lots left to do!
+*/
+

@@ -1,6 +1,6 @@
 // Sensors.h
 
-/* ESParasite Data Logger
+/* ESParaSite-ESP32 Data Logger
         Authors: Andy  (SolidSt8Dad)Eakin
 
         Please see /ATTRIB for full credits and OSS License Info
@@ -25,7 +25,7 @@
 namespace ESParaSite {
 namespace Sensors {
 // Core Functions
-void initI2cSensors();
+void initI2cSensors(uint8_t, uint8_t);
 int8_t pingSensor(uint16_t);
 void dumpSensor(bool);
 // Chamber Sensor Functions

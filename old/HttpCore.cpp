@@ -17,12 +17,12 @@
         communities that work to support all of the sensors, microcontrollers,
         web standards, etc.
 */
-
+/*
 #include <ArduinoJson.h>
-#include <ESP8266Webserver.h>
-#include <ESP8266WiFi.h>
-#include <ESP8266WiFiMulti.h>
-#include <ESP8266mDNS.h>
+//#include <ESP8266Webserver.h>
+//#include <ESP8266WiFi.h>
+//#include <ESP8266WiFiMulti.h>
+//#include <ESP8266mDNS.h>
 //#include <ESPAsyncTCP.h>
 //#include <ESPAsyncWebServer.h>
 #include <LittleFS.h>
@@ -34,10 +34,10 @@
 //+++ User Settings +++
 
 // Enter the port on which you want the HTTP server to run (Default is 80).
-// You will access the server at http://<ipaddress>:<port>*/
+// You will access the server at http://<ipaddress>:<port>
 #define HTTP_REST_PORT 80
 
-//*** DO NOT MODIFY ANYTHING BELOW THIS LINE ***
+// *** DO NOT MODIFY ANYTHING BELOW THIS LINE ***
 
 ESP8266WebServer server;
 
@@ -78,3 +78,5 @@ void ESParaSite::HttpCore::serveHttpClient() { server.handleClient(); }
 void ESParaSite::HttpCore::startHttpServer() { server.begin(); }
 
 void ESParaSite::HttpCore::stopHttpServer() { server.stop(); }
+
+*/

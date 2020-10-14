@@ -21,15 +21,12 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
 #include <cppQueue.h>
 
 #include "ESParaSite.h"
 #include "DataDigest.h"
-#include "Http.h"
-#include "Json.h"
+#include "HTTP.h"
+#include "API.h"
 
 extern ESParaSite::chamberData chamber;
 extern ESParaSite::opticsData optics;
@@ -37,21 +34,18 @@ extern ESParaSite::ambientData ambient;
 extern ESParaSite::enclosureData enclosure;
 extern ESParaSite::statusData status;
 extern ESParaSite::configData config;
-extern ESParaSite::rtcEepromData eeprom;
-extern ESParaSite::sensorExists exists;
+extern ESParaSite::eepromData eeprom;
+extern ESParaSite::machineData machine;
 
 extern Queue fiveSecHistory;
 extern Queue thirtySecHistory;
 extern Queue fiveMinHistory;
 extern Queue oneHourHistory;
 
-extern ESP8266WebServer server;
-
-void ESParaSite::DataToJson::getJsonHistory() {
+DynamicJsonDocument ESParaSite::APIHandler::getJsonGraphData() {
   int8_t position = 0;
-  DynamicJsonDocument parentDoc(2048);
+  DynamicJsonDocument parentDoc(4096);
   DynamicJsonDocument nestedDoc(128);
-  ESParaSite::HttpHandleJson::sendContentLengthUnknown();
 
   for (int8_t i = 0; i <= ONEHOURMAXELEMENT; i++) {
 
@@ -77,10 +71,7 @@ void ESParaSite::DataToJson::getJsonHistory() {
       position++;
     }
   }
-
-  ESParaSite::HttpHandleJson::serializeSendJson(parentDoc);
-  parentDoc.clear();
-
+  
   for (int8_t i = 0; i <= FIVEMINMAXELEMENT; i++) {
 
     history tempStruct = {0};
@@ -105,9 +96,6 @@ void ESParaSite::DataToJson::getJsonHistory() {
       position++;
     }
   }
-
-  ESParaSite::HttpHandleJson::serializeSendJsonPartN(parentDoc);
-  parentDoc.clear();
 
   for (int8_t i = 0; i <= THIRTYSECMAXELEMENT; i++) {
     history tempStruct = {0};
@@ -134,9 +122,6 @@ void ESParaSite::DataToJson::getJsonHistory() {
     }
   }
 
-  ESParaSite::HttpHandleJson::serializeSendJsonPartN(parentDoc);
-  parentDoc.clear();
-
   for (int8_t i = 0; i <= FIVESECMAXELEMENT; i++) {
     history tempStruct = {0};
     fiveSecHistory.peekIdx(&tempStruct, i);
@@ -162,7 +147,5 @@ void ESParaSite::DataToJson::getJsonHistory() {
     }
   }
 
-  ESParaSite::HttpHandleJson::serializeSendJsonPartN(parentDoc);
-
+  return parentDoc;
 }
-

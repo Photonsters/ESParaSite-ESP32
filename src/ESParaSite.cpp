@@ -1,6 +1,6 @@
 // ESParaSite.cpp
 
-/* ESParasite Data Logger
+/* ESParaSite-ESP32 Data Logger
         Authors: Andy  (SolidSt8Dad)Eakin
 
         Please see /ATTRIB for full credits and OSS License Info
@@ -19,41 +19,48 @@
 */
 
 #include <Arduino.h>
-#include <ESP8266Webserver.h>
-#include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
-
-#include <LittleFS.h>
+#include <ESPmDNS.h>
+#include <FS.h>
+#include <I2C_eeprom.h>
+#include <SPIFFS.h>
+#include <WiFi.h>
 
 #include "ConfigPortal.h"
 #include "Core.h"
 #include "DebugUtils.h"
-#include "Eeprom.h"
+#include "ESP32.h"
 #include "ESParaSite.h"
+#include "Eeprom.h"
 #include "FileCore.h"
 #include "Http.h"
-#include "OTA.h"
 #include "Sensors.h"
 #include "Util.h"
 
-// Trigger for forcing the ESParaSite into Captive Portal mode is 
-// Pin D3 (GPIO0) and also flash button on NodeMCU.  Flash button is 
-// convenient to use but if it is pressed it can hang the serial port device 
-// driver until the computer is rebooted.
 
-// D3 (GPIO0) on NodeMCU and WeMos D1 Mini.
-const byte TRIGGER_PIN = 0;
+// The structs used to carry data globally
+ESParaSite::ambientData ambient;
+ESParaSite::configData config;
+ESParaSite::enclosureData enclosure;
+ESParaSite::opticsData optics;
+ESParaSite::chamberData chamber;
+ESParaSite::eepromData eeprom;
+ESParaSite::statusData status;
+ESParaSite::machineData machine;
 
-// Alternate external button, if an external button is desired.
-// D0 (GPIO16) on NodeMCU and WeMos D1 Mini
-const byte TRIGGER_PIN2 = 16;
-
-// Onboard LED I/O pin.
-// D4 (GPIO2) on NodeMCU and WeMos D1 Mini.
-const int8_t PIN_LED = 2;
-
-// Indicates whether ESP has WiFi credentials saved from previous session
-bool initialConfig = false;
+/* Trigger for inititating config mode is Pin D3 and also flash button on
+   NodeMCU Flash button is convenient to use but if it is pressed it will stuff
+   up the serial port device driver until the computer is rebooted on windows
+   machines.
+*/
+const int TRIGGER_PIN =
+    PIN_D0; // Pin D0 mapped to pin GPIO0/BOOT/ADC11/TOUCH1 of ESP32
+/*
+   Alternative trigger pin. Needs to be connected to a button to use this pin.
+   It must be a momentary connection not connected permanently to ground. Either
+   trigger pin will work.
+*/
+const int TRIGGER_PIN2 =
+    PIN_D25; // Pin D25 mapped to pin GPIO25/ADC18/DAC1 of ESP32
 
 // Variables used to service the loop
 uint16_t curLoopMillis = 0;
@@ -62,101 +69,11 @@ uint16_t prevDhtMillis = 0;
 uint16_t prevEepromMillis = 0;
 uint16_t prevHistoryMillis = 0;
 
-// The structs used to carry data globally
-ESParaSite::ambientData ambient;
-ESParaSite::configData config;
-ESParaSite::enclosureData enclosure;
-ESParaSite::opticsData optics;
-ESParaSite::chamberData chamber;
-ESParaSite::rtcEepromData eeprom;
-ESParaSite::statusData status;
-ESParaSite::sensorExists exists;
+void setup() {
+  // Set up pins
+  pinMode(LED_BUILTIN, OUTPUT);
 
-//*************************************************************************
-// LOOP
-//*************************************************************************
-void loop(void) {
-
-  // Check to see if Config Mode Triggered
-  if ((digitalRead(TRIGGER_PIN) == LOW) || (digitalRead(TRIGGER_PIN2) == LOW) ||
-      (initialConfig)) {
-    Serial.println("Configuration portal requested.");
-    ESParaSite::ConfigPortal::doConfigPortal();
-  }
-
-  // Refresh mDNS
-  MDNS.update();
-
-  // Run the HTTP Sever
-  ESParaSite::HttpCore::serveHttpClient();
-
-  // Check for OTA
-  ESParaSite::OTA::handleOTA();
-
-  // Refresh the Current Loop Millisecond value
-  curLoopMillis = millis();
-
-#ifdef DEBUG_L3
-  Serial.print(F("curLoopMillis:\t"));
-  Serial.println(curLoopMillis);
-  Serial.print(F("prevSensorMillis:\t"));
-  Serial.println(prevSensorMillis);
-  Serial.print(F("prevDhtMillis:\t"));
-  Serial.println(prevDhtMillis);
-  Serial.print(F("prevEepromMillis:\t"));
-  Serial.println(prevEepromMillis);
-  Serial.println();
-#endif
-
-#ifdef DEBUG_L1
-  Serial.println(F("checking to see if we need to do anything"));
-  Serial.println();
-  Serial.println(F("Sensors"));
-  Serial.println();
-#endif
-
-  // Read sensors if it has been the right interval
-  prevSensorMillis =
-      ESParaSite::Core::doReadSensors(curLoopMillis, prevSensorMillis);
-
-#ifdef DEBUG_L1
-  Serial.println(F("DHT12 Sensor"));
-  Serial.println();
-#endif
-
-  // Read the DHT12 sensor if it has been the right interval
-  prevDhtMillis = ESParaSite::Core::doReadDht(curLoopMillis, prevDhtMillis);
-
-#ifdef DEBUG_L1
-  Serial.println(F("Write to EEPROM"));
-  Serial.println();
-#endif
-
-  // Update EEPROM and memory values
-  prevEepromMillis =
-      ESParaSite::Core::doHandleEeprom(curLoopMillis, prevEepromMillis);
-
-#ifdef DEBUG_L1
-  Serial.println(F("Create History Digest"));
-  Serial.println();
-#endif
-
-  // Keep track of historical data and update Web UI data
-  prevHistoryMillis =
-      ESParaSite::Core::doHandleHistory(curLoopMillis, prevHistoryMillis);
-
-#ifdef DEBUG_L1
-  Serial.println(F("End of loop waiting 500msec"));
-  delay(500);
-#endif
-}
-
-//*************************************************************************
-// SETUP
-//*************************************************************************
-void setup(void) {
-  // Set up our pins
-  pinMode(PIN_LED, OUTPUT);
+  // Initialize trigger pins
   pinMode(TRIGGER_PIN, INPUT_PULLUP);
   pinMode(TRIGGER_PIN2, INPUT_PULLUP);
 
@@ -164,85 +81,79 @@ void setup(void) {
   Serial.begin(115200);
   Serial.println();
 
-  // Turn onboard LED on
-  digitalWrite(PIN_LED, LOW);
-
   Serial.println();
-  Serial.println(F("ESParaSite Data Logging Server"));
-  Serial.println(F("https://github.com/Photonsters/ESParaSite"));
-  Serial.print(F("Compiled: "));
-  Serial.print(F(__DATE__));
+  Serial.println("ESParaSite Data Logging Server");
+  Serial.println("https://github.com/Photonsters/ESParaSite-ESP32");
+  Serial.print("Compiled: ");
+  Serial.print(__DATE__);
   Serial.print("\t");
   Serial.println(__TIME__);
   Serial.println();
 
+  // Turn onboard LED on
+  digitalWrite(LED_BUILTIN, LED_ON);
+
+  // For Development Only.  FORMAT_SPIFFS can be uncommented in DebugUtils.h.
+#ifdef FORMAT_SPIFFS
+  Serial.println("Formatting SPIFFS...");
+  SPIFFS.format();
+#endif
+
+  // Attempt to mount the SPIFFS Filesystem. If failure assumethat this is
+  // first boot and format SPIFFS Filesystem.
+
+  Serial.println("Mounting FS...");
+
+  if (!SPIFFS.begin()) {
+    Serial.println("Failed to mount SPIFFS file system. This is likely the "
+                   "first boot of this device. Formatting SPIFFS");
+    SPIFFS.format();
+  } else {
+    Serial.println("File system mounted");
+    Serial.println();
+  }
+
 #ifdef DEBUG_L2
-  Serial.println(F("Dumping Wifi Diagnostics"));
-  Serial.println();
-  WiFi.printDiag(Serial); 
+  // Dump the contents of SPIFFS filesystem to serial console.
+  ESParaSite::APIHandler::getFSInfo(1);
 #endif
 
-#ifdef FORMAT_LITTLEFS
-  Serial.println(F("Formatting LITTLEFS..."));
-  LittleFS.format();
-#endif
-
-  // Mount the LittleFS Filesystem. Failure forces boot into captive portal.
-
-  Serial.println(F("Mounting FS..."));
-
-  if (!LittleFS.begin()) {
-    Serial.println(F("Failed to mount LittleFS file system. Booting in AP "
-                     "Config Portal mode."));
-    ESParaSite::ConfigPortal::doConfigPortal();
-  } else {
-    Serial.println(F("File system mounted"));
-  }
-
-  Serial.println();
-  Serial.println(F("Loading config.json"));
-
-  //  Load the config.json file. Failure forces boot into captive portal.
+  // Attempt to load the config.json file. If it does not exist, launch Wifi
+  // Config Portal. If it exists, parse it.
   if (!ESParaSite::FileCore::loadConfig()) {
-    Serial.println(
-        F("Failed to load config. Booting in AP Config Portal mode."));
+    Serial.println("There was a problem with the config.json file. Booting "
+                   "in Config Portal mode.");
     ESParaSite::ConfigPortal::doConfigPortal();
   } else {
-    Serial.println(F("config.json loaded"));
-    Serial.println("");
+    Serial.println("config.json loaded.");
   }
-
-  // Dispalying FileSystem Info
-  ESParaSite::FileCore::getFSInfo(1);
 
   // Check if Wifi is configured. Failure forces boot into captive portal.
-  Serial.println(F("Configuring Wifi..."));
+  Serial.println("Configuring Wifi...");
   Serial.println();
-  
-  if (WiFi.SSID() == "") {
+
+  if (strcmp(config.cfgWifiSsidChar, "") == 0) {
     Serial.println(
         F("WiFi credentials unset, Booting in AP Config Portal mode."));
     ESParaSite::ConfigPortal::doConfigPortal();
   } else {
-    // Force to station mode because if device was switched off while in
-    // access point mode it will start up next time in access point mode.
-    WiFi.mode(WIFI_STA);
-
     // Connect to Access Point
-    Serial.println(F("Connecting to Wifi..."));
-    WiFi.reconnect();
+    Serial.println("Connecting to Wifi...");
+    WiFi.begin(config.cfgWifiSsidChar, config.cfgWifiPasswordChar);
 
 #ifndef DEBUG_L1
+    // Wait for WiFi connection.
     WiFi.waitForConnectResult();
 #endif
 
 #ifdef DEBUG_L1
+    // Wait for WiFi connection. Time how long it takes to connect.
     unsigned long startedAt = millis();
-    Serial.print(F("After waiting "));
+    Serial.print("After waiting ");
     int8_t connRes = WiFi.waitForConnectResult();
     float waited = (millis() - startedAt);
     Serial.print(waited / 1000);
-    Serial.print(F(" secs in setup() connection result is "));
+    Serial.print(" secs in setup() connection result is ");
     Serial.println(connRes);
 #endif
   }
@@ -250,79 +161,166 @@ void setup(void) {
   // Print Wifi Status and IP. If Wifi connection times out, launch config
   // portal.
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println(F("Failed to connect, Booting in AP Config Portal mode."));
+    Serial.println("Failed to connect, Booting in AP Config Portal"
+                     "mode.");
     ESParaSite::ConfigPortal::doConfigPortal();
   } else {
-    Serial.print(F("Wifi Connected to: "));
+    Serial.print("Wifi Connected to: ");
     Serial.println(WiFi.SSID());
-    Serial.print(F("IP Address: "));
+    Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
     Serial.println();
   }
 
   // Start mDNS if enabled
-  Serial.println(F("Configuring mDNS..."));
+  Serial.println("Configuring mDNS...");
 
   if (config.cfgMdnsEnabled == 1) {
     const char *mdnsN = config.cfgMdnsName;
     if (!MDNS.begin(mdnsN)) {
       // Start the mDNS responder <cfgMdnsName>.local
-      Serial.println(F("Error setting up MDNS responder!"));
+      Serial.println("Error setting up MDNS responder!");
       ESParaSite::ConfigPortal::doConfigPortal();
     } else {
-      Serial.println(F("mDNS responder started"));
-      Serial.println(F("mDNS enabled on URL:"));
-      Serial.print(F("http://"));
+      Serial.println("mDNS responder started");
+      Serial.println("mDNS enabled on URL:");
+      Serial.print("http://");
       Serial.print(config.cfgMdnsName);
-      Serial.println(F(".local"));
+      Serial.println(".local");
       Serial.println();
     }
   }
 
-  // Start http server
-  Serial.println(F("Starting Webserver..."));
-  ESParaSite::HttpCore::configHttpServerRouting();
-  ESParaSite::HttpCore::startHttpServer();
-
-  Serial.println(F("HTTP server started"));
+  // Initialize I2C bus, sensors and RTC module.
+  Serial.println("Initializing i2c bus, sensors and rtc...");
   Serial.println();
+  if (!(config.cfgPinSda) || !(config.cfgPinScl)) {
+    ESParaSite::Sensors::initI2cSensors(PIN_SDA, PIN_SCL);
+  } else {
+    ESParaSite::Sensors::initI2cSensors(config.cfgPinSda, config.cfgPinScl);
+  }
 
-  // Initialize i2c bus, sensors, rtc and eeprom
-  Serial.println(F("Initializing i2c bus, sensors, rtc and eeprom"));
-  Serial.println();
-
-  ESParaSite::Sensors::initI2cSensors();
-
-  // Find the most recent EEPROM segment and populate our eeprom_data struct.
-  uint16_t mruSegAddr = ESParaSite::RtcEeprom::doEepromFirstRead();
-
-#ifdef DEBUG_L1
-  Serial.print(F("The most recent write address:\t"));
-  Serial.println(mruSegAddr);
-  Serial.println();
+#ifdef DEBUG_L2
+  // Dump all sensor data to serial console
+  ESParaSite::Sensors::dumpSensor(false);
 #endif
 
-  ESParaSite::RtcEeprom::doEepromRead(mruSegAddr);
+  // Initialize i2c eeprom
+  Serial.println("Initializing i2c eeprom...");
+  Serial.println();
 
+  if (!ESParaSite::Eeprom::initI2cEeprom()) {
+    Serial.println("No EEPROM Device Found, Please Check I2C Pins. Booting "
+                   "in Config Portal mode.");
+    ESParaSite::ConfigPortal::doConfigPortal();
+  } else {
+    ESParaSite::Eeprom::initEeprom();
+  }
+
+  // For Development Only.  FORMAT_EEPROM can be uncommented in DebugUtils.h.
 #ifdef FORMAT_EEPROM
   ESParaSite::RtcEeprom::doEepromFormat(1);
 #endif
-  
-  // Dump all sensor data to serial console
-  ESParaSite::Sensors::dumpSensor(true);
 
-  Serial.println(F("Startup Complete!"));
-  Serial.println();
+  // Find the most recent EEPROM segment and populate our eeprom_data struct.
+  uint16_t mruPageAddr = ESParaSite::Eeprom::doEepromFirstRead();
 
 #ifdef DEBUG_L1
-  Serial.println(F("Waiting 3 Seconds..."));
+  Serial.print("The most recent write address:\t");
+  Serial.print(mruPageAddr);
+  Serial.print(" (0x");
+  Serial.print(mruPageAddr, HEX);
+  Serial.println(")");
+  Serial.println();
+#endif
+
+  ESParaSite::Eeprom::doEepromRead(mruPageAddr);
+
+  Serial.println("Startup Complete!");
+  Serial.println();
+
+#ifdef RESET_LIFE_COUNTERS
+  eeprom.eepromVatLifeSec = 0;
+  eeprom.eepromLedLifeSec = 0;
+  eeprom.eepromScreenLifeSec = 0;
+#endif
+
+  ESParaSite::HttpCore::configHttpServerRouting();
+  ESParaSite::HttpCore::startHttpServer();
+
+#ifdef DEBUG_L1
+      Serial.println("Waiting 3 Seconds...");
   delay(3000);
 #endif
 
-  //Configure and start OTA update listener
-  ESParaSite::OTA::configOTA();
-  ESParaSite::OTA::startOTA();
-  
   // Turn led off as we are finished booting.
-  digitalWrite(PIN_LED, HIGH);
+  digitalWrite(LED_BUILTIN, HIGH);
+}
+
+void loop() {
+  digitalWrite(LED_BUILTIN, LOW);
+
+  // Check to see if Config Mode Triggered
+  if ((digitalRead(TRIGGER_PIN) == LOW) || (digitalRead(TRIGGER_PIN2) == LOW)) {
+    Serial.println("Configuration portal requested.");
+    ESParaSite::ConfigPortal::doConfigPortal();
+  }
+
+  // Refresh the Current Loop Millisecond value
+  curLoopMillis = millis();
+
+#ifdef DEBUG_L4
+  Serial.print("curLoopMillis:\t");
+  Serial.println(curLoopMillis);
+  Serial.print("prevSensorMillis:\t");
+  Serial.println(prevSensorMillis);
+  Serial.print("prevDhtMillis:\t");
+  Serial.println(prevDhtMillis);
+  Serial.print("prevEepromMillis:\t");
+  Serial.println(prevEepromMillis);
+  Serial.println();
+#endif
+
+#ifdef DEBUG_L4
+  Serial.println("Checking to see if we need to read Sensors");
+  Serial.println();
+#endif
+
+  // Read sensors if it has been the right interval
+  prevSensorMillis =
+      ESParaSite::Core::doReadSensors(curLoopMillis, prevSensorMillis);
+
+#ifdef DEBUG_L4
+  Serial.println("Checking to see if we need to read DHT12 Sensor");
+  Serial.println();
+#endif
+
+  // Read the DHT12 sensor if it has been the right interval
+  prevDhtMillis = ESParaSite::Core::doReadDht(curLoopMillis, prevDhtMillis);
+
+#ifdef DEBUG_L4
+  Serial.println("Checking to see if we need to Write to EEPROM");
+  Serial.println();
+#endif
+
+  // Update EEPROM and memory values
+  prevEepromMillis =
+      ESParaSite::Core::doHandleEeprom(curLoopMillis, prevEepromMillis);
+
+#ifdef DEBUG_L4
+  Serial.println("Create History Digest");
+  Serial.println();
+#endif
+
+  // Keep track of historical data and update Web UI data
+  prevHistoryMillis =
+      ESParaSite::Core::doHandleHistory(curLoopMillis, prevHistoryMillis);
+
+#ifdef DEBUG_L2
+  Serial.println("End of loop waiting 500msec");
+  delay(500);
+#endif
+
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(500);
 }

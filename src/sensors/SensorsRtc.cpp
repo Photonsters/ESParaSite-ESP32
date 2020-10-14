@@ -24,20 +24,11 @@
 #include <Time.h>
 #include <Wire.h>
 
-#include "ConfigPortal.h"
 #include "DebugUtils.h"
 #include "ESParaSite.h"
-#include "Eeprom.h"
 #include "Sensors.h"
 #include "Util.h"
 
-#define countof(a) (sizeof(a) / sizeof(a[0]))
-
-//+++ Advanced Settings +++
-// These values control the I2C address of each sensor. Some chips may use
-// different addresses and it is recommend to utilize the I2C scanner sketch at:
-// https://gist.github.com/AustinSaintAubin/dc8abb2d168f5f7c27d65bb4829ca870
-// to scan for your sensors if you are having any issues with communication.
 
 // DS3231 Real Time Clock Address. Default (0x68)
 #define RTC_ADDR (0x68)
@@ -46,30 +37,28 @@
 #define RTC_EEPROM_MAX_ADDR (0x57)
 
 //*** DO NOT MODIFY ANYTHING BELOW THIS LINE ***
-extern int8_t eeprom_i2c_address;
-
 extern ESParaSite::statusData status;
 extern ESParaSite::configData config;
 extern ESParaSite::enclosureData enclosure;
-extern ESParaSite::sensorExists exists;
+extern ESParaSite::machineData machine;
 
-extern RtcDS3231<TwoWire> rtc;
+extern RtcDS3231<TwoWire> dev_rtc;
 
 void ESParaSite::Sensors::initRtcClock() {
-  rtc.Begin();
+  dev_rtc.Begin();
 
   Serial.println();
   RtcDateTime compiled = RtcDateTime(__DATE__, __TIME__);
   Util::printDateTime(compiled);
   Serial.println();
 
-  if (!rtc.IsDateTimeValid()) {
-    if (rtc.LastError() != 0) {
+  if (!dev_rtc.IsDateTimeValid()) {
+    if (dev_rtc.LastError() != 0) {
       // we have a communications error
       // see https://www.arduino.cc/en/Reference/WireEndTransmission for
       // what the number means
       Serial.print(F("RTC communications error = "));
-      Serial.println(rtc.LastError());
+      Serial.println(dev_rtc.LastError());
     } else {
       // Common Cuases:
       //  1) first time you ran and the device wasn't running yet
@@ -81,19 +70,19 @@ void ESParaSite::Sensors::initRtcClock() {
       // it will also reset the valid flag internally unless the Rtc device is
       // having an issue
 
-      rtc.SetDateTime(compiled);
+      dev_rtc.SetDateTime(compiled);
     }
   }
 
-  if (!rtc.GetIsRunning()) {
+  if (!dev_rtc.GetIsRunning()) {
     Serial.println(F("RTC was not actively running, starting now"));
-    rtc.SetIsRunning(true);
+    dev_rtc.SetIsRunning(true);
   }
 
-  RtcDateTime now = rtc.GetDateTime();
+  RtcDateTime now = dev_rtc.GetDateTime();
   if (now < compiled) {
     Serial.println(F("RTC is older than compile time!  (Updating DateTime)"));
-    rtc.SetDateTime(compiled);
+    dev_rtc.SetDateTime(compiled);
   } else if (now > compiled) {
     Serial.println(F("RTC is newer than compile time. (this is expected)"));
   } else if (now == compiled) {
@@ -103,20 +92,19 @@ void ESParaSite::Sensors::initRtcClock() {
 
   Serial.println();
 
-  status.rtcCurrentSecond = (rtc.GetDateTime() + 946684800);
+  status.rtcCurrentSecond = (dev_rtc.GetDateTime() + 946684800);
 
-  Serial.println();
   // never assume the Rtc was last configured by you, so
   // just clear them to your needed state
-  rtc.Enable32kHzPin(false);
-  rtc.SetSquareWavePin(DS3231SquareWavePin_ModeNone);
+  dev_rtc.Enable32kHzPin(false);
+  dev_rtc.SetSquareWavePin(DS3231SquareWavePin_ModeNone);
 }
 
 void ESParaSite::Sensors::readRtcData(bool print) {
   ESParaSite::Sensors::checkRtcStatus();
-  // RtcDateTime now = rtc.GetDateTime();
+  // RtcDateTime now = dev_rtc.GetDateTime();
   // Epoch64 Conversion
-  status.rtcCurrentSecond = (rtc.GetDateTime() + 946684800);
+  status.rtcCurrentSecond = (dev_rtc.GetDateTime() + 946684800);
 
 #ifdef DEBUG_L2
   Serial.println("==========Real Time Clock==========");
@@ -125,7 +113,7 @@ void ESParaSite::Sensors::readRtcData(bool print) {
 
   if (print == true) {
 
-    Util::printDateTime(rtc.GetDateTime());
+    Util::printDateTime(dev_rtc.GetDateTime());
     Serial.println();
     Serial.print("Epoch64:\t\t\t");
     Serial.println(status.rtcCurrentSecond);
@@ -133,13 +121,13 @@ void ESParaSite::Sensors::readRtcData(bool print) {
 }
 
 void ESParaSite::Sensors::checkRtcStatus() {
-  if (!rtc.IsDateTimeValid()) {
-    if (rtc.LastError() != 0) {
+  if (!dev_rtc.IsDateTimeValid()) {
+    if (dev_rtc.LastError() != 0) {
       // we have a communications error
       // see https://www.arduino.cc/en/Reference/WireEndTransmission for
       // what the number means
       Serial.print(F("RTC communications error = "));
-      Serial.println(rtc.LastError());
+      Serial.println(dev_rtc.LastError());
       Serial.println(F("RTC not responding...Restarting"));
       ESP.restart();
     } else {
@@ -152,7 +140,7 @@ void ESParaSite::Sensors::checkRtcStatus() {
 }
 
 void ESParaSite::Sensors::readRtcTemp(bool print) {
-  RtcTemperature temp = (rtc.GetTemperature());
+  RtcTemperature temp = (dev_rtc.GetTemperature());
   enclosure.caseTempC = ESParaSite::Util::floatToInt(temp.AsFloatDegC());
 
 #ifdef DEBUG_L2
@@ -174,12 +162,12 @@ void ESParaSite::Sensors::readRtcTemp(bool print) {
 time_t ESParaSite::Sensors::readRtcEpoch() {
 
   ESParaSite::Sensors::checkRtcStatus();
-  time_t rtc_return = (rtc.GetDateTime() + 946684800);
+  time_t rtc_return = (dev_rtc.GetDateTime() + 946684800);
   return rtc_return;
 }
 
 void ESParaSite::Sensors::setRtcfromEpoch(time_t epoch) {
   ESParaSite::Sensors::checkRtcStatus();
   time_t rtc_set = (epoch - 946684800);
-  rtc.SetDateTime(rtc_set);
+  dev_rtc.SetDateTime(rtc_set);
 }

@@ -1,5 +1,8 @@
 
-# ESP para-site temperature logger
+# ESParaSite temperature logger (ESP Chip-based Parameter loggger with integrated website)
+
+### Please note, ESParaSite has reached the limit of what is possible with the ESP8266 chips and all future development will be on the ESP32 Platform.
+
 ESP based temperature, LED power and power time logger for LCD/DLP/SLA Resin machines
 
 The idea for this project is to make use of the empty ESP01 slot available on the photon to make a logger to keep track of various temperatures and other data on a MSLA printer by acessing the ESP with a regular browser

@@ -18,7 +18,7 @@
         web standards, etc.
 
 */
-
+/*
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <ESP8266WebServer.h>
@@ -38,7 +38,7 @@ extern ESParaSite::enclosureData enclosure;
 extern ESParaSite::statusData status;
 extern ESParaSite::configData config;
 extern ESParaSite::rtcEepromData eeprom;
-extern ESParaSite::sensorExists exists;
+extern ESParaSite::machineData machine;
 
 extern ESP8266WebServer server;
 
@@ -114,10 +114,10 @@ void ESParaSite::DataToJson::getJsonI2C() {
   doc["class"] = "i2c";
   doc["sdaPin"] = config.cfgPinSda;
   doc["sclPin"] = config.cfgPinScl;
-  doc["dhtExist"] = exists.dhtDetected;
-  doc["bmeExist"] = exists.bmeDetected;
-  doc["mlxExist"] = exists.mlxDetected;
-  doc["siExist"] = exists.siDetected;
+  doc["dhtExist"] = machine.dhtDetected;
+  doc["bmeExist"] = machine.bmeDetected;
+  doc["mlxExist"] = machine.mlxDetected;
+  doc["siExist"] = machine.siDetected;
 
   ESParaSite::HttpHandleJson::serializeSendJson(doc);
 }
@@ -174,3 +174,4 @@ void ESParaSite::DataToJson::getJsonStatus(){
 
   ESParaSite::HttpHandleJson::serializeSendJson(doc);
 }
+*/

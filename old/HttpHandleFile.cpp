@@ -18,9 +18,9 @@
         web standards, etc.
 
 */
-
+/*
 #include <Arduino.h>
-#include <ESP8266WebServer.h>
+//#include <ESP8266WebServer.h>
 #include <LittleFS.h>
 
 #include "Http.h"
@@ -150,3 +150,5 @@ bool ESParaSite::HttpFile::loadFromLittleFS(String path) {
   dataFile.close();
   return true;
 }
+
+*/

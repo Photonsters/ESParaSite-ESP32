@@ -17,11 +17,11 @@
         communities that work to support all of the sensors, microcontrollers,
         web standards, etc.
 */
-
+/*
 #include <ArduinoJson.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
+//#include <ESP8266WebServer.h>
+//#include <ESP8266WiFi.h>
+//#include <ESP8266mDNS.h>
 
 #include <LittleFS.h>
 #include <WiFiClient.h>
@@ -58,3 +58,4 @@ void ESParaSite::HttpHandleJson::serializeSendJsonPartN(const JsonDocument &doc)
 
   return;
 }
+*/

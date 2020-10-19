@@ -25,6 +25,7 @@
 #include <SPIFFS.h>
 #include <WiFi.h>
 
+#include "API.h"
 #include "ConfigPortal.h"
 #include "Core.h"
 #include "DebugUtils.h"
@@ -68,7 +69,17 @@ uint16_t prevSensorMillis = 0;
 uint16_t prevDhtMillis = 0;
 uint16_t prevEepromMillis = 0;
 uint16_t prevHistoryMillis = 0;
+uint16_t prevLedMillis = 0;
 
+//will store LED state
+//int ledState = LED_ON;
+
+// interval at which to blink (milliseconds)
+//const long interval = 1000;
+
+// **********************************************************
+// SETUP
+// **********************************************************
 void setup() {
   // Set up pins
   pinMode(LED_BUILTIN, OUTPUT);
@@ -113,10 +124,11 @@ void setup() {
     Serial.println();
   }
 
-#ifdef DEBUG_L2
+//#ifdef DEBUG_L2
   // Dump the contents of SPIFFS filesystem to serial console.
   ESParaSite::APIHandler::getFSInfo(1);
-#endif
+  ESParaSite::APIHandler::getFSList(1);
+//#endif
 
   // Attempt to load the config.json file. If it does not exist, launch Wifi
   // Config Portal. If it exists, parse it.
@@ -254,12 +266,13 @@ void setup() {
 #endif
 
   // Turn led off as we are finished booting.
-  digitalWrite(LED_BUILTIN, HIGH);
+  digitalWrite(LED_BUILTIN, LED_OFF);
 }
 
+// **********************************************************
+// LOOP
+// **********************************************************
 void loop() {
-  digitalWrite(LED_BUILTIN, LOW);
-
   // Check to see if Config Mode Triggered
   if ((digitalRead(TRIGGER_PIN) == LOW) || (digitalRead(TRIGGER_PIN2) == LOW)) {
     Serial.println("Configuration portal requested.");
@@ -321,6 +334,4 @@ void loop() {
   delay(500);
 #endif
 
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(500);
 }

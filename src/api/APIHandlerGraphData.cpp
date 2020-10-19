@@ -58,7 +58,6 @@ DynamicJsonDocument ESParaSite::APIHandler::getJsonGraphData() {
       nested["at"] = tempStruct.ambientTempC;
       nested["ah"] = tempStruct.ambientHumidity;
       nested["ct"] = tempStruct.chamberTempC;
-      nested["ch"] = tempStruct.chamberHumidity;
       nested["lt"] = tempStruct.ledTempC;
       nested["st"] = tempStruct.screenTempC;
       nested["lo"] = tempStruct.ledOn;
@@ -83,7 +82,6 @@ DynamicJsonDocument ESParaSite::APIHandler::getJsonGraphData() {
       nested["at"] = tempStruct.ambientTempC;
       nested["ah"] = tempStruct.ambientHumidity;
       nested["ct"] = tempStruct.chamberTempC;
-      nested["ch"] = tempStruct.chamberHumidity;
       nested["lt"] = tempStruct.ledTempC;
       nested["st"] = tempStruct.screenTempC;
       nested["lo"] = tempStruct.ledOn;
@@ -107,7 +105,6 @@ DynamicJsonDocument ESParaSite::APIHandler::getJsonGraphData() {
       nested["at"] = tempStruct.ambientTempC;
       nested["ah"] = tempStruct.ambientHumidity;
       nested["ct"] = tempStruct.chamberTempC;
-      nested["ch"] = tempStruct.chamberHumidity;
       nested["lt"] = tempStruct.ledTempC;
       nested["st"] = tempStruct.screenTempC;
       nested["lo"] = tempStruct.ledOn;
@@ -132,7 +129,6 @@ DynamicJsonDocument ESParaSite::APIHandler::getJsonGraphData() {
       nested["at"] = tempStruct.ambientTempC;
       nested["ah"] = tempStruct.ambientHumidity;
       nested["ct"] = tempStruct.chamberTempC;
-      nested["ch"] = tempStruct.chamberHumidity;
       nested["lt"] = tempStruct.ledTempC;
       nested["st"] = tempStruct.screenTempC;
       nested["lo"] = tempStruct.ledOn;

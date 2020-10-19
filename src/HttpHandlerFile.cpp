@@ -24,6 +24,9 @@
 
 #include "HTTP.h"
 
+// This code is currently redundant but I would prefer to use this function to
+// handle the routing.
+/*
 void ESParaSite::HTTPHandler::handleUpload(AsyncWebServerRequest *request,
                                         String filename, size_t index,
                                         uint8_t *data, size_t len, bool final) {
@@ -44,3 +47,4 @@ void ESParaSite::HTTPHandler::handleUpload(AsyncWebServerRequest *request,
     request->send(200, "text/plain", "File Uploaded !");
   }
 }
+*/

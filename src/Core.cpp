@@ -25,6 +25,7 @@
 #include "DebugUtils.h"
 #include "ESParaSite.h"
 #include "Eeprom.h"
+#include "ESP32.h"
 #include "Sensors.h"
 
 // +++ Advanced Settings +++
@@ -79,6 +80,8 @@
 #define TRIGGER_PIN2 (16)
 
 int8_t isPrintingCounter = 0;
+// will store LED state
+int ledState = LED_ON;
 
 extern ESParaSite::enclosureData enclosure;
 extern ESParaSite::opticsData optics;
@@ -94,6 +97,15 @@ uint16_t ESParaSite::Core::doReadSensors(uint16_t curLoopMsec,
 
     // HEARTBEAT X
     Serial.print(".");
+
+    if (ledState == LED_ON) {
+      ledState = LED_OFF;
+    } else {
+      ledState = LED_ON;
+    }
+
+    // set the LED with the ledState of the variable:
+    digitalWrite(LED_BUILTIN, ledState);
 
 #ifdef DEBUG_L4
     Serial.println("Reading the sensors");

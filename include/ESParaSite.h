@@ -43,7 +43,7 @@ struct enclosureData {
   uint32_t lcdLifeSec{};
   uint32_t ledLifeSec{};
   uint32_t vatLifeSec{};
-  int16_t caseTempC{};
+  float caseTempC{};
 };
 
 struct opticsData {

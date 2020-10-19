@@ -19,14 +19,15 @@
 */
 
 #include <ArduinoJson.h>
+#include <AsyncJson.h>
 #include <ESPAsyncWebServer.h>
 
-#include "HTTP.h"
 #include "API.h"
 #include "FileCore.h"
+#include "HTTP.h"
 
-
-//This code is currently redundant but I would prefer to use this function to handle the routing.
+// This code is currently redundant but I would prefer to use this function to
+// handle the routing.
 void ESParaSite::HTTPHandler::handleAPI(AsyncWebServerRequest *request) {
   DynamicJsonDocument doc(4096);
   String response;

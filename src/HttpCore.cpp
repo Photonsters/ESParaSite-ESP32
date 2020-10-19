@@ -19,6 +19,7 @@
 */
 
 #include <ArduinoJson.h>
+#include <AsyncJson.h>
 #include <ESPAsyncWebServer.h>
 #include <SPIFFS.h>
 #include <WiFiClient.h>
@@ -53,7 +54,7 @@ void ESParaSite::HttpCore::configHttpServerRouting() {
     }
   });
 
-  server.on("/api", HTTP_GET, [](AsyncWebServerRequest *request) {
+  server.on("/api", HTTP_ANY, [](AsyncWebServerRequest *request) {
     DynamicJsonDocument doc(4096);
     String response;
     if (request->hasParam("readAmbient")) {
@@ -82,7 +83,7 @@ void ESParaSite::HttpCore::configHttpServerRouting() {
       // APIHandlerGraphData.cpp
       doc = ESParaSite::APIHandler::getJsonGraphData();
     } else if (request->hasParam("readFSList")) {
-      // We need to figure out how to do this since we must chunk response.
+      doc = ESParaSite::APIHandler::getFSList(2);
     } else if (request->hasParam("resetLedLife")) {
       // APIHandlerReset.cpp
       String doReset = request->getParam("resetLedLife")->value();
@@ -110,8 +111,7 @@ void ESParaSite::HttpCore::configHttpServerRouting() {
         doc["response"] = "LED Lifetime Counter was not reset";
       }
     } else if (request->hasParam("setRtcClock")) {
-      String timestamp = request->getParam("setRtcClock")->value();
-
+      String timestamp = request->getParam("timestamp")->value();
       if (ESParaSite::APIHandler::handleSetClock(timestamp)) {
         doc["response"] = "Real Time Clock was set to current time was reset";
       } else {
@@ -131,7 +131,33 @@ void ESParaSite::HttpCore::configHttpServerRouting() {
       ESParaSite::HTTPHandler::handleUpload);
 
   Serial.println("HTTP REST config complete");
+
+  server.serveStatic("/", SPIFFS, "/");
 }
+
+
 
 void ESParaSite::HttpCore::startHttpServer() { server.begin(); }
 
+void ESParaSite::HTTPHandler::handleUpload(AsyncWebServerRequest *request,
+                                           String filename, size_t index,
+                                           uint8_t *data, size_t len,
+                                           bool final) {
+  if (!index) {
+    Serial.print("UploadStart: " + filename);
+    // open the file on first call and store the file handle in the request
+    // object
+    filename = "/" + filename;
+    request->_tempFile = SPIFFS.open(filename, "w");
+  }
+  if (len) {
+    // stream the incoming chunk to the opened file
+    request->_tempFile.write(data, len);
+  }
+  if (final) {
+    Serial.print("UploadEnd: " + filename + "," + index + len);
+    // close the file handle as the upload is now done
+    request->_tempFile.close();
+    request->send(200, "text/plain", "File Uploaded !");
+  }
+                                           }

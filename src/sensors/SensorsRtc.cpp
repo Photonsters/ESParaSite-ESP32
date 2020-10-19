@@ -141,7 +141,7 @@ void ESParaSite::Sensors::checkRtcStatus() {
 
 void ESParaSite::Sensors::readRtcTemp(bool print) {
   RtcTemperature temp = (dev_rtc.GetTemperature());
-  enclosure.caseTempC = ESParaSite::Util::floatToInt(temp.AsFloatDegC());
+  enclosure.caseTempC = ESParaSite::Util::floatToTwo(temp.AsFloatDegC());
 
 #ifdef DEBUG_L2
   Serial.println("==========Case Temperature=========");

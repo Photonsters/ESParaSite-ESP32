@@ -60,7 +60,9 @@ bool ESParaSite::APIHandler::handleResetVat(String doReset) {
 }
 
 bool ESParaSite::APIHandler::handleSetClock(String tString) {
+  Serial.println("Setting RTC Timestamp");
   if (tString == "") {
+    Serial.println("RTC Timestamp not set");
     return false;
   } else {
     Serial.print("Old Timestamp\t");

@@ -21,13 +21,24 @@
 #include <ArduinoJson.h>
 #include <AsyncJson.h>
 #include <ESPAsyncWebServer.h>
-#include <SPIFFS.h>
 #include <WiFiClient.h>
 
 #include "ESParaSite.h"
 #include "FileCore.h"
 #include "HTTP.h"
 #include "API.h"
+
+#ifdef ESP32
+
+#include <SPIFFS.h>
+#define FileFS SPIFFS
+
+#else
+
+#include <LittleFS.h>
+#define FileFS LittleFS
+
+#endif
 
 //+++ User Settings +++
 
@@ -46,8 +57,8 @@ void ESParaSite::HttpCore::configHttpServerRouting() {
   });
 
   server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request) {
-    if (SPIFFS.exists("/index.html")) {
-      request->send(SPIFFS, "/index.html");
+    if (FileFS.exists("/index.html")) {
+      request->send(FileFS, "/index.html");
     } else {
       request->send(200, "text/html",
                     "<p>Please upload GUI using ESParaSite GUI Uploader!</p>");
@@ -132,7 +143,7 @@ void ESParaSite::HttpCore::configHttpServerRouting() {
 
   Serial.println("HTTP REST config complete");
 
-  server.serveStatic("/", SPIFFS, "/");
+  server.serveStatic("/", FileFS, "/");
 }
 
 
@@ -148,7 +159,7 @@ void ESParaSite::HTTPHandler::handleUpload(AsyncWebServerRequest *request,
     // open the file on first call and store the file handle in the request
     // object
     filename = "/" + filename;
-    request->_tempFile = SPIFFS.open(filename, "w");
+    request->_tempFile = FileFS.open(filename, "w");
   }
   if (len) {
     // stream the incoming chunk to the opened file

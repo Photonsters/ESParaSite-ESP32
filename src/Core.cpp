@@ -67,18 +67,6 @@
 // Changing this value is not suggested as it will throw off the intervals.
 #define HISTORY_DIGEST_INTERVAL_SEC (5)
 
-// Trigger for inititating config mode is Pin D3 and also flash button on
-// NodeMCU.  Flash button is convenient to use but if it is pressed it will
-// hang the serial port device driver until the computer is rebooted on
-// Windows machines.
-
-// D3 on NodeMCU and WeMos.
-#define TRIGGER_PIN (0)
-
-// Alternate button, if an external button is desired.
-// D0 on NodeMCU and WeMos.
-#define TRIGGER_PIN2 (16)
-
 int8_t isPrintingCounter = 0;
 // will store LED state
 int ledState = LED_ON;

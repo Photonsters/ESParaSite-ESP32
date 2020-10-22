@@ -20,42 +20,82 @@
 
 #include <ArduinoJson.h>
 #include <FS.h>
-#include <SPIFFS.h>
 
 #include "API.h"
 #include "DebugUtils.h"
 #include "ESParaSite.h"
 
+
+#ifdef ESP32
+
+#include <SPIFFS.h>
+#define FileFS SPIFFS
+
+#else
+
+#include <LittleFS.h>
+#define FileFS LittleFS
+
+#endif
+
 extern ESParaSite::configData config;
 
 DynamicJsonDocument ESParaSite::APIHandler::getFSInfo(int8_t mode) {
   DynamicJsonDocument doc(256);
+
+#ifdef ESP32
   if (mode == 1) {
     Serial.println("Filesystem Bytes: ");
     Serial.print("Total Filesystem Bytes:\t");
-    Serial.println(SPIFFS.totalBytes());
+    Serial.println(FileFS.totalBytes());
     Serial.print("Used Filesystem Bytes:\t");
-    Serial.println(SPIFFS.usedBytes());
+    Serial.println(FileFS.usedBytes());
     Serial.println();
 
     return doc;
 
   } else if (mode == 2) {
     doc["class"] = "fsInfo";
-    doc["tFsB"] = SPIFFS.totalBytes();
-    doc["uFsB"] = SPIFFS.usedBytes();
+    doc["tFsB"] = FileFS.totalBytes();
+    doc["uFsB"] = FileFS.usedBytes();
 
     return doc;
   } else {
     return doc;
   }
+#else
+
+  FSInfo fs_info;
+  LittleFS.info(fs_info);
+  if (mode == 1) {
+    Serial.println("Filesystem Bytes: ");
+    Serial.print("Total Filesystem Bytes:\t");
+    Serial.println(fs_info.totalBytes);
+    Serial.print("Used Filesystem Bytes:\t");
+    Serial.println(fs_info.usedBytes);
+    Serial.println();
+
+    return doc;
+
+  } else if (mode == 2) {
+    doc["class"] = "fsInfo";
+    doc["tFsB"] = fs_info.totalBytes;
+    doc["uFsB"] = fs_info.usedBytes;
+
+    return doc;
+  } else {
+    return doc;
+  }
+
+#endif
+
 }
 
 DynamicJsonDocument ESParaSite::APIHandler::getFSList(int8_t mode) {
   DynamicJsonDocument parentDoc(4096);
   DynamicJsonDocument nestedDoc(80);
 
-  File root = SPIFFS.open("/", "r");
+  File root = FileFS.open("/", "r");
   File file = root.openNextFile();
   
   if (mode == 1) {

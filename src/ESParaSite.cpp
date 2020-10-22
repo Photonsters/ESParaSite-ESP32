@@ -31,6 +31,8 @@
 #include "FileCore.h"
 #include "Http.h"
 #include "Sensors.h"
+#include "Util.h"
+
 
 #ifdef ESP32
 
@@ -48,21 +50,17 @@
 
 #endif
 
-#include "Util.h"
-
 #ifdef ESP32
 
 #include <SPIFFS.h>
 FS *filesystem = &SPIFFS;
 #define FileFS SPIFFS
-#define FS_Name "SPIFFS"
 
 #else
 
 #include <LittleFS.h>
 FS *filesystem = &LittleFS;
 #define FileFS LittleFS
-#define FS_Name "LittleFS"
 
 #endif
 
@@ -149,28 +147,28 @@ void setup() {
   // Turn onboard LED on
   digitalWrite(LED_BUILTIN, LED_ON);
 
-  // For Development Only.  FORMAT_SPIFFS can be uncommented in DebugUtils.h.
-#ifdef FORMAT_SPIFFS
-  Serial.println("Formatting SPIFFS...");
-  SPIFFS.format();
+  // For Development Only.  FORMAT_FileFS can be uncommented in DebugUtils.h.
+#ifdef FORMAT_FileFS
+  Serial.println("Formatting SPIFFS/LittleFS...");
+  FileFS.format();
 #endif
 
-  // Attempt to mount the SPIFFS Filesystem. If failure assumethat this is
-  // first boot and format SPIFFS Filesystem.
+  // Attempt to mount the FileFS Filesystem. If failure assumethat this is
+  // first boot and format FileFS Filesystem.
 
   Serial.println("Mounting FS...");
 
-  if (!SPIFFS.begin()) {
-    Serial.println("Failed to mount SPIFFS file system. This is likely the "
-                   "first boot of this device. Formatting SPIFFS");
-    SPIFFS.format();
+  if (!FileFS.begin()) {
+    Serial.println("Failed to mount FileFS file system. This is likely the "
+                   "first boot of this device. Formatting FileFS");
+    FileFS.format();
   } else {
     Serial.println("File system mounted");
     Serial.println();
   }
 
   //#ifdef DEBUG_L2
-  // Dump the contents of SPIFFS filesystem to serial console.
+  // Dump the contents of SPIFFS/LittleFS filesystem to serial console.
   ESParaSite::APIHandler::getFSInfo(1);
   ESParaSite::APIHandler::getFSList(1);
   //#endif

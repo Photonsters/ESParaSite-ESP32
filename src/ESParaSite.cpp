@@ -19,24 +19,52 @@
 */
 
 #include <Arduino.h>
-#include <ESPmDNS.h>
 #include <FS.h>
 #include <I2C_eeprom.h>
-#include <SPIFFS.h>
-#include <WiFi.h>
 
 #include "API.h"
 #include "ConfigPortal.h"
 #include "Core.h"
 #include "DebugUtils.h"
-#include "ESP32.h"
 #include "ESParaSite.h"
 #include "Eeprom.h"
 #include "FileCore.h"
 #include "Http.h"
 #include "Sensors.h"
+
+#ifdef ESP32
+
+#include <ESPmDNS.h>
+#include <WiFi.h>
+
+#include "ESP32.h"
+
+#else
+
+#include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
+
+#include "ESP8266.h"
+
+#endif
+
 #include "Util.h"
 
+#ifdef ESP32
+
+#include <SPIFFS.h>
+FS *filesystem = &SPIFFS;
+#define FileFS SPIFFS
+#define FS_Name "SPIFFS"
+
+#else
+
+#include <LittleFS.h>
+FS *filesystem = &LittleFS;
+#define FileFS LittleFS
+#define FS_Name "LittleFS"
+
+#endif
 
 // The structs used to carry data globally
 ESParaSite::ambientData ambient;
@@ -48,20 +76,37 @@ ESParaSite::eepromData eeprom;
 ESParaSite::statusData status;
 ESParaSite::machineData machine;
 
-/* Trigger for inititating config mode is Pin D3 and also flash button on
-   NodeMCU Flash button is convenient to use but if it is pressed it will stuff
-   up the serial port device driver until the computer is rebooted on windows
-   machines.
-*/
-const int TRIGGER_PIN =
-    PIN_D0; // Pin D0 mapped to pin GPIO0/BOOT/ADC11/TOUCH1 of ESP32
-/*
-   Alternative trigger pin. Needs to be connected to a button to use this pin.
-   It must be a momentary connection not connected permanently to ground. Either
-   trigger pin will work.
-*/
-const int TRIGGER_PIN2 =
-    PIN_D25; // Pin D25 mapped to pin GPIO25/ADC18/DAC1 of ESP32
+#ifdef ESP32
+// Trigger for inititating config mode is Pin D0 and also flash button on
+// NodeMCU. Flash button is convenient to use but if it is pressed it will
+// hang the serial port device driver until the computer is rebooted on
+// Windows machines.
+
+// Pin D0 mapped to pin GPIO0/BOOT/ADC11/TOUCH1 of ESP32
+const int TRIGGER_PIN = PIN_D0;
+
+// Alternative trigger pin. Needs to be connected to a button to use this pin.
+// It must be a momentary connection not connected permanently to ground. Either
+// trigger pin will work.
+
+// Pin D25 mapped to pin GPIO25/ADC18/DAC1 of ESP32
+const int TRIGGER_PIN2 = PIN_D25;
+
+#else
+// Trigger for inititating config mode is Pin D3 and also flash button on
+// NodeMCU. Flash button is convenient to use but if it is pressed it will
+// hang the serial port device driver until the computer is rebooted on
+// Windows machines.
+
+const byte TRIGGER_PIN = PIN_D3;
+
+// Alternative trigger pin. Needs to be connected to a button to use this pin.
+// It must be a momentary connection not connected permanently to ground. Either
+// trigger pin will work.
+
+// Pin D0 mapped to pin GPIO16/USER/WAKE of ESP8266.
+const byte TRIGGER_PIN2 = PIN_D0;
+#endif
 
 // Variables used to service the loop
 uint16_t curLoopMillis = 0;
@@ -71,11 +116,11 @@ uint16_t prevEepromMillis = 0;
 uint16_t prevHistoryMillis = 0;
 uint16_t prevLedMillis = 0;
 
-//will store LED state
-//int ledState = LED_ON;
+// will store LED state
+// int ledState = LED_ON;
 
 // interval at which to blink (milliseconds)
-//const long interval = 1000;
+// const long interval = 1000;
 
 // **********************************************************
 // SETUP
@@ -124,11 +169,11 @@ void setup() {
     Serial.println();
   }
 
-//#ifdef DEBUG_L2
+  //#ifdef DEBUG_L2
   // Dump the contents of SPIFFS filesystem to serial console.
   ESParaSite::APIHandler::getFSInfo(1);
   ESParaSite::APIHandler::getFSList(1);
-//#endif
+  //#endif
 
   // Attempt to load the config.json file. If it does not exist, launch Wifi
   // Config Portal. If it exists, parse it.
@@ -174,7 +219,7 @@ void setup() {
   // portal.
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("Failed to connect, Booting in AP Config Portal"
-                     "mode.");
+                   "mode.");
     ESParaSite::ConfigPortal::doConfigPortal();
   } else {
     Serial.print("Wifi Connected to: ");
@@ -261,7 +306,7 @@ void setup() {
   ESParaSite::HttpCore::startHttpServer();
 
 #ifdef DEBUG_L1
-      Serial.println("Waiting 3 Seconds...");
+  Serial.println("Waiting 3 Seconds...");
   delay(3000);
 #endif
 
@@ -333,5 +378,4 @@ void loop() {
   Serial.println("End of loop waiting 500msec");
   delay(500);
 #endif
-
 }

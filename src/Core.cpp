@@ -95,9 +95,10 @@ uint16_t ESParaSite::Core::doReadSensors(uint16_t curLoopMsec,
   if (static_cast<uint16_t>(curLoopMsec - prevSensorMsec) >=
       (ALL_SENSOR_POLLING_SEC * 1000)) {
 
-    // HEARTBEAT X
+    // HEARTBEAT 
     Serial.print(".");
 
+    // swap ledState LED_ON/LED_OFF
     if (ledState == LED_ON) {
       ledState = LED_OFF;
     } else {

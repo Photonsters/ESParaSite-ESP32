@@ -23,6 +23,7 @@
 
 #define LED_BUILTIN                                                            \
   2 // Pin D4 mapped to pin GPIO2/TXD1 of ESP8266, NodeMCU and WeMoS, control
+    // on-board LED
 #define PIN_LED                                                                \
   2 // Pin D2 mapped to pin GPIO2/ADC12 of ESP32, control on-board LED
 #define LED_PIN                                                                \

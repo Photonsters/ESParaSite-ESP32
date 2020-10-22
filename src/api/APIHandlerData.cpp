@@ -21,13 +21,22 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <WiFi.h>
-
 
 #include "ESParaSite.h"
 #include "DataDigest.h"
 #include "HTTP.h"
 #include "API.h"
+
+
+#ifdef ESP32
+
+#include <WiFi.h>
+
+#else
+
+#include <ESP8266WiFi.h>
+
+#endif
 
 extern ESParaSite::chamberData chamber;
 extern ESParaSite::opticsData optics;

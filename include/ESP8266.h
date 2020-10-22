@@ -18,8 +18,8 @@
         web standards, etc.
 */
 
-#define LED_ON HIGH
-#define LED_OFF LOW
+#define LED_ON LOW
+#define LED_OFF HIGH
 
 #define LED_BUILTIN                                                            \
   2 // Pin D4 mapped to pin GPIO2/TXD1 of ESP8266, NodeMCU and WeMoS, control
@@ -53,8 +53,6 @@
 
 #define PIN_SD2 9  // Pin SD2 mapped to pin GPIO9/SDD2 of ESP8266
 #define PIN_SD3 10 // Pin SD3 mapped to pin GPIO10/SDD3 of ESP8266
-
-#define PIN_A0 = A0 //Pin A0 mapped to ADC0/TOUT of ESP8266
 
 #define PIN_SCL 5 // Pin SCL mapped to pin GPIO5/SCL of ESP8266
 #define PIN_SDA 4 // Pin SDA mapped to pin GPIO4/SDA of ESP8266

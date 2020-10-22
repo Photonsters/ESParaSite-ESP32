@@ -28,17 +28,28 @@
 // This example code is in the public domain.
 
 #include <ArduinoJson.h>
-#include <SPIFFS.h>
 
 #include "DebugUtils.h"
 #include "ESParaSite.h"
 #include "FileCore.h"
 
+#ifdef ESP32
+
+#include <SPIFFS.h>
+#define FileFS SPIFFS
+
+#else
+
+#include <LittleFS.h>
+#define FileFS LittleFS
+
+#endif
+
 extern ESParaSite::configData config;
 
 bool ESParaSite::FileCore::loadConfig() {
   // Open the config.json file for reading.
-  File configFile = SPIFFS.open("/config.json", "r");
+  File configFile = FileFS.open("/config.json", "r");
   if (!configFile) {
 
     Serial.println(F("Failed to open config file."));
@@ -109,7 +120,7 @@ bool ESParaSite::FileCore::saveConfig() {
   serializeJsonPretty(doc, Serial);
   Serial.println();
 
-  File configFile = SPIFFS.open("/config.json", "w");
+  File configFile = FileFS.open("/config.json", "w");
   if (!configFile) {
     Serial.println(F("Failed to open config file for writing"));
     return false;

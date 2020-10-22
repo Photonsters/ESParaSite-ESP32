@@ -20,9 +20,20 @@
 
 #include <ArduinoJson.h>
 #include <ESPAsyncWebServer.h>
-#include <SPIFFS.h>
 
 #include "HTTP.h"
+
+#ifdef ESP32
+
+#include <SPIFFS.h>
+#define FileFS SPIFFS
+
+#else
+
+#include <LittleFS.h>
+#define FileFS LittleFS
+
+#endif
 
 // This code is currently redundant but I would prefer to use this function to
 // handle the routing.

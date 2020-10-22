@@ -33,18 +33,44 @@
  *****************************************************************************************************************************/
 //
 #include <Arduino.h>
-#include <WiFi.h>
 #include <WiFiClient.h>
-#include <esp_wifi.h>
+
 
 #include "ConfigPortal.h"
-#include "ESP32.h"
 #include "ESParaSite.h"
 #include "FileCore.h"
+
+
+#ifdef ESP32
+
+#include <ESPmDNS.h>
+#include <WiFi.h>
+#include <esp_wifi.h>
+
+#include "ESP32.h"
 
 // From v1.1.1
 #include <WiFiMulti.h>
 WiFiMulti wifiMulti;
+
+#define ESP_getChipId() ((uint32_t)ESP.getEfuseMac())
+
+#else
+
+#include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
+
+#include "ESP8266.h"
+
+// From v1.1.0
+#include <ESP8266WiFiMulti.h>
+ESP8266WiFiMulti wifiMulti;
+
+#define ESP_getChipId() (ESP.getChipId())
+
+#endif
+
+
 
 // Use from 0 to 4. Higher number, more debugging messages and memory usage.
 #define _ESPASYNC_WIFIMGR_LOGLEVEL_ 3
@@ -56,7 +82,6 @@ WiFiMulti wifiMulti;
 #define TIME_BETWEEN_MODELESS_SCANS 30000
 
 // SSID and PW for Config Portal
-#define ESP_getChipId() ((uint32_t)ESP.getEfuseMac())
 
 String ssid = "ESParaSite_" + String(ESP_getChipId(), HEX);
 const char *password = "thisbugsme!";
